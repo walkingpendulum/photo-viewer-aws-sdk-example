@@ -16,7 +16,7 @@
   "scripts": {
     "build": "webpack",
     "serve": "npx webpack serve --mode development",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx --fix"
   },
   "eslintConfig": {
     "extends": [
