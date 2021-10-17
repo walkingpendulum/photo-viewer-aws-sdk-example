@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-    entry: './src/index.ts',
+    entry: './src/index.tsx',
     devtool: 'inline-source-map',
     module: {
         rules: [
@@ -14,7 +14,7 @@ module.exports = {
         ],
     },
     resolve: {
-        extensions: [ '.tsx', '.ts', '.js' ],
+        extensions: ['.tsx', '.ts', '.js'],
     },
     output: {
         filename: 'bundle.js',
@@ -23,7 +23,10 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin(
-            {title: "Photo Viewer App"}
+            {
+                title: "Photo Viewer App",
+                template: "index.html",
+            }
         )
     ],
 };

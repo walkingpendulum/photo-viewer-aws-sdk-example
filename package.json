@@ -15,7 +15,8 @@
   },
   "scripts": {
     "build": "webpack",
-    "serve": "npx webpack serve --mode development"
+    "serve": "npx webpack serve --mode development",
+    "lint": "eslint . --ext .ts,.tsx"
   },
   "eslintConfig": {
     "extends": [
@@ -37,6 +38,11 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.175",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-react": "^7.26.1",
     "html-webpack-plugin": "^5.4.0",
     "ts-loader": "^9.2.6",
     "webpack": "^5.58.2",

@@ -8,7 +8,7 @@
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "esModuleInterop" : true
+    "esModuleInterop": true
   },
   "exclude": [
     "node_modules"
