@@ -146,6 +146,41 @@ class PhotoViewer extends React.Component<ComponentProps> {
 }
 
 
+const listAlbums = async () => {
+    try {
+        const data = await s3.send(
+            new ListObjectsCommand({ Delimiter: "/", Bucket: bucket })
+        );
+        var albums = data.CommonPrefixes.map(function (commonPrefix) {
+            var prefix = commonPrefix.Prefix;
+            var albumName = decodeURIComponent(prefix.replace("/", ""));
+            return getHtml([
+                "<li>",
+                '<button style="margin:5px;" onclick="viewAlbum(\'' +
+                albumName +
+                "')\">",
+                albumName,
+                "</button>",
+                "</li>",
+            ]);
+        });
+        var message = albums.length
+            ? getHtml(["<p>Click an album name to view it.</p>"])
+            : "<p>You don't have any albums. You need to create an album.";
+        var htmlTemplate = [
+            "<h2>Albums</h2>",
+            message,
+            "<ul>",
+            getHtml(albums),
+            "</ul>",
+        ];
+
+        document.getElementById("viewer").innerHTML = getHtml(htmlTemplate);
+    } catch (err) {
+        return alert("There was an error listing your albums: " + err.message);
+    }
+};
+
 const s3 = new S3Client({
     region,
     credentials: fromCognitoIdentityPool({
