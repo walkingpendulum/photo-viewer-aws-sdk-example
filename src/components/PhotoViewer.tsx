@@ -16,42 +16,56 @@ const s3 = new S3Client({
 
 
 interface ComponentProps {
-    name: string,
 }
 
 
 interface PhotoViewerState {
-    albums: JSX.Element,
+    albumsList?: JSX.Element,
+    photosList?: JSX.Element,
+    currentAlbumName?: string,
 }
 
 class PhotoViewer extends React.Component<ComponentProps, PhotoViewerState> {
     constructor(props) {
         super(props);
         this.state = {
-            albums: props.albums,
+            albumsList: undefined,
+            photosList: undefined,
+            currentAlbumName: undefined,
         };
     }
 
     render() {
         return (
             <div>
-                <h1>
-                    Hello, {this.props.name}
-                </h1>
-                <div>
-                    {this.state.albums}
-                </div>
+                {this.state.currentAlbumName ? this.state.photosList: this.state.albumsList}
             </div>
         );
     }
 
-    async componentDidMount() {
-        const albums = await this.listAlbums();
-        albums.key;
-        this.setState((prevState) => ({albums: albums}));
+    async componentDidMount(): Promise<void> {
+        if (this.state.currentAlbumName) {
+            if (!this.state.photosList) {
+                const photosList = await this.viewAlbum(this.state.currentAlbumName);
+                this.setState((prevState) => ({
+                    photosList: photosList,
+                }));
+            }
+            return;
+        } else if (this.state.albumsList) {
+            return;
+        } else {
+            const albumsList = await this.listAlbums();
+            this.setState((prevState) => {
+                return ({
+                    albumsList: albumsList,
+                });
+            });
+            return;
+        }
     }
 
-    async viewAlbum(albumName: string): Promise<JSX.Element> {
+    public async viewAlbum(albumName: string): Promise<JSX.Element> {
         const albumPhotosKey = `${encodeURIComponent(albumName)}/`;
         let data;
         try {
@@ -91,8 +105,8 @@ class PhotoViewer extends React.Component<ComponentProps, PhotoViewerState> {
                 </span>
             );
         });
-        const photosHeader = photos.length ? 'The following photos are present' : 'There are no photos in this album';
-        const message = <p> {photosHeader} </p>;
+        const header = photos.length ? 'The following photosList are present' : 'There are no photosList in this album';
+        const message = <p> {header} </p>;
         // document
         //     .getElementsByTagName("img")[0]
         //     .setAttribute("style", "display:none;");
@@ -100,13 +114,7 @@ class PhotoViewer extends React.Component<ComponentProps, PhotoViewerState> {
         return (
             <div>
                 <div>
-                    <button
-                        onClick={async () => {
-                            return await this.listAlbums();
-                        }}
-                    >
-                        Back To albums
-                    </button>
+                    {this.makeBackToAlbumsButton()}
                 </div>
                 <h2>
                     `Album: ${albumName}`
@@ -119,39 +127,61 @@ class PhotoViewer extends React.Component<ComponentProps, PhotoViewerState> {
                     {`End of album: ${albumName}`}
                 </h2>
                 <div>
-                    <button
-                        onClick={async () => {
-                            return await this.listAlbums();
-                        }}
-                    >
-                        Back To albums
-                    </button>
+                    {this.makeBackToAlbumsButton()}
                 </div>
             </div>
         );
     }
 
-    async listAlbums(): Promise<JSX.Element> {
+    makeBackToAlbumsButton(): JSX.Element {
+        return (
+            <button
+                onClick={async () => {
+                    this.setState((prevState) => ({
+                        currentAlbumName: undefined,
+                    }));
+
+                    return await this.listAlbums();
+                }}
+            >
+                Back To albums
+            </button>
+        );
+    }
+
+    public async listAlbums(): Promise<JSX.Element> {
         const data = await s3.send(
             new ListObjectsCommand({Delimiter: '/', Bucket: bucket}),
         );
-
-        return data.CommonPrefixes.map(function(commonPrefix) {
-            const prefix = commonPrefix.Prefix;
-            const albumName = decodeURIComponent(prefix.replace('/', ''));
-            return (
-                <li key='album'>
-                    <button
-                        style={{margin: '5px'}}
-                        onClick={async () => {
-                            return await this.viewAlbum(albumName);
-                        }}
-                    >
-                        {albumName}
-                    </button>
-                </li>
-            );
-        });
+        return (
+            <div>
+                {
+                    data.CommonPrefixes.map(
+                        function(commonPrefix) {
+                            const prefix = commonPrefix.Prefix;
+                            const albumName = decodeURIComponent(prefix.replace('/', ''));
+                            return (
+                                <li key='album'>
+                                    <button
+                                        style={{margin: '5px'}}
+                                        onClick={async () => {
+                                            const photosList = await this.viewAlbum(albumName);
+                                            this.setState((prevState) => ({
+                                                currentAlbumName: albumName,
+                                                photosList: photosList,
+                                            }));
+                                        }}
+                                    >
+                                        {albumName}
+                                    </button>
+                                </li>
+                            );
+                        },
+                        this,
+                    )
+                }
+            </div>
+        );
     }
 }
 

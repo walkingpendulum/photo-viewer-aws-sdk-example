@@ -7,7 +7,7 @@ render(
     (
         <div>
             <h1>Hello, world</h1>
-            <PhotoViewer name='123'/>
+            <PhotoViewer/>
         </div>
     ),
     document.getElementById('root'),
