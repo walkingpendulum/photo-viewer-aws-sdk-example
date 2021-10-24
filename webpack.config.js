@@ -4,6 +4,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     entry: './src/index.tsx',
     devtool: 'inline-source-map',
+    devServer: {
+        host: 'localhost',
+    },
     module: {
         rules: [
             {
@@ -24,9 +27,9 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin(
             {
-                title: "Photo Viewer App",
-                template: "index.html",
-            }
-        )
+                title: 'Photo Viewer App',
+                template: 'index.html',
+            },
+        ),
     ],
 };

@@ -16,4 +16,6 @@ plugins:
 rules:
   indent: [ "error", 4 ]
   "require-jsdoc": off
-
+  "max-len":
+    - error
+    - code: 120

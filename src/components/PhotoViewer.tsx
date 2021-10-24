@@ -1,43 +1,85 @@
-import React, {JSXElementConstructor} from 'react';
+import React from 'react';
 import {CognitoIdentityClient} from '@aws-sdk/client-cognito-identity';
 import {fromCognitoIdentityPool} from '@aws-sdk/credential-provider-cognito-identity';
-const { S3Client, ListObjectsCommand } = require("@aws-sdk/client-s3");
-import { region, identityPoolId, bucket } from "../config";
+import {bucket, identityPoolId, region} from '../config';
 
+const {S3Client, ListObjectsCommand} = require('@aws-sdk/client-s3');
+
+
+const s3 = new S3Client({
+    region: region,
+    credentials: fromCognitoIdentityPool({
+        client: new CognitoIdentityClient({region: region}),
+        identityPoolId: identityPoolId,
+    }),
+});
 
 
 interface ComponentProps {
-    name: string;
+    name: string,
 }
 
-class PhotoViewer extends React.Component<ComponentProps> {
+
+interface PhotoViewerState {
+    albums: JSX.Element,
+}
+
+class PhotoViewer extends React.Component<ComponentProps, PhotoViewerState> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            albums: props.albums,
+        };
+    }
+
     render() {
-        return <h1>Hello, {this.props.name}</h1>;
+        return (
+            <div>
+                <h1>
+                    Hello, {this.props.name}
+                </h1>
+                <div>
+                    {this.state.albums}
+                </div>
+            </div>
+        );
+    }
+
+    async componentDidMount() {
+        const albums = await this.listAlbums();
+        albums.key;
+        this.setState((prevState) => ({albums: albums}));
     }
 
     async viewAlbum(albumName: string): Promise<JSX.Element> {
         const albumPhotosKey = `${encodeURIComponent(albumName)}/`;
+        let data;
         try {
-            const data = await s3.send(
+            data = await s3.send(
                 new ListObjectsCommand({
                     Prefix: albumPhotosKey,
                     Bucket: bucket,
-                })
+                }),
             );
         } catch (error) {
             console.log(error);
             throw error;
         }
-        const bucketUrl = `https://s3.${region}.amazonaws.com/${bucket}/`
-        const photos = data.Contents.map(function (photo) {
+        if (!data) {
+            console.log(`Failed to list album folder ${albumPhotosKey}`);
+            return <div>Error occurred</div>;
+        }
+        const bucketUrl = `https://s3.${region}.amazonaws.com/${bucket}/`;
+        const photos = data.Contents.map(function(photo) {
             const photoKey = photo.Key;
             const photoUrl = bucketUrl + encodeURIComponent(photoKey);
             return (
-                <span>
+                <span key={''}>
                     <div>
                         <br/>
                         <img
-                            style={{width:'128px', height: '128px'}}
+                            alt={''}
+                            style={{width: '128px', height: '128px'}}
                             src={photoUrl}
                         />
                     </div>
@@ -47,16 +89,21 @@ class PhotoViewer extends React.Component<ComponentProps> {
                         </span>
                     </div>
                 </span>
-            )
+            );
         });
         const photosHeader = photos.length ? 'The following photos are present' : 'There are no photos in this album';
-        const message = <p> {photosHeader} </p>
+        const message = <p> {photosHeader} </p>;
+        // document
+        //     .getElementsByTagName("img")[0]
+        //     .setAttribute("style", "display:none;");
 
         return (
             <div>
                 <div>
                     <button
-                        onClick={() = null} // listAlbums
+                        onClick={async () => {
+                            return await this.listAlbums();
+                        }}
                     >
                         Back To albums
                     </button>
@@ -73,121 +120,39 @@ class PhotoViewer extends React.Component<ComponentProps> {
                 </h2>
                 <div>
                     <button
-                        onclick={() => null}    // listAlbums
+                        onClick={async () => {
+                            return await this.listAlbums();
+                        }}
                     >
                         Back To albums
                     </button>
                 </div>
             </div>
-        )
-    }
-
-    const viewAlbum2 = async (albumName) => {
-        try {
-            // var albumPhotosKey = encodeURIComponent(albumName) + "/";
-            // const data = await s3.send(
-            //     new ListObjectsCommand({
-            //         Prefix: albumPhotosKey,
-            //         Bucket: bucket,
-            //     })
-            // );
-            // var href = "https://s3." + region + ".amazonaws.com/";
-            // var bucketUrl = href + bucket + "/";
-            // var photos = data.Contents.map(function (photo) {
-            //     var photoKey = photo.Key;
-            //     var photoUrl = bucketUrl + encodeURIComponent(photoKey);
-            //     return getHtml([
-            //         "<span>",
-            //         "<div>",
-            //         "<br/>",
-            //         '<img style="width:128px;height:128px;" src="' + photoUrl + '"/>',
-            //         "</div>",
-            //         "<div>",
-            //         "<span>",
-            //         photoKey.replace(albumPhotosKey, ""),
-            //         "</span>",
-            //         "</div>",
-            //         "</span>",
-            //     ]);
-            // });
-            // var message = photos.length
-            //     ? "<p>The following photos are present.</p>"
-            //     : "<p>There are no photos in this album.</p>";
-            var htmlTemplate = [
-                "<div>",
-                '<button onclick="listAlbums()">',
-                "Back To albums",
-                "</button>",
-                "</div>",
-                "<h2>",
-                "Album: " + albumName,
-                "</h2>",
-                message,
-                "<div>",
-                getHtml(photos),
-                "</div>",
-                "<h2>",
-                "End of album: " + albumName,
-                "</h2>",
-                "<div>",
-                '<button onclick="listAlbums()">',
-                "Back To albums",
-                "</button>",
-                "</div>",
-            ];
-            document.getElementById("viewer").innerHTML = getHtml(htmlTemplate);
-            document
-                .getElementsByTagName("img")[0]
-                .setAttribute("style", "display:none;");
-        } catch (err) {
-            return alert("There was an error viewing your album: " + err.message);
-        }
-    };
-}
-
-
-const listAlbums = async () => {
-    try {
-        const data = await s3.send(
-            new ListObjectsCommand({ Delimiter: "/", Bucket: bucket })
         );
-        var albums = data.CommonPrefixes.map(function (commonPrefix) {
-            var prefix = commonPrefix.Prefix;
-            var albumName = decodeURIComponent(prefix.replace("/", ""));
-            return getHtml([
-                "<li>",
-                '<button style="margin:5px;" onclick="viewAlbum(\'' +
-                albumName +
-                "')\">",
-                albumName,
-                "</button>",
-                "</li>",
-            ]);
-        });
-        var message = albums.length
-            ? getHtml(["<p>Click an album name to view it.</p>"])
-            : "<p>You don't have any albums. You need to create an album.";
-        var htmlTemplate = [
-            "<h2>Albums</h2>",
-            message,
-            "<ul>",
-            getHtml(albums),
-            "</ul>",
-        ];
-
-        document.getElementById("viewer").innerHTML = getHtml(htmlTemplate);
-    } catch (err) {
-        return alert("There was an error listing your albums: " + err.message);
     }
-};
 
-const s3 = new S3Client({
-    region,
-    credentials: fromCognitoIdentityPool({
-        client: new CognitoIdentityClient({ region }),
-        identityPoolId,
-    }),
-});
+    async listAlbums(): Promise<JSX.Element> {
+        const data = await s3.send(
+            new ListObjectsCommand({Delimiter: '/', Bucket: bucket}),
+        );
 
+        return data.CommonPrefixes.map(function(commonPrefix) {
+            const prefix = commonPrefix.Prefix;
+            const albumName = decodeURIComponent(prefix.replace('/', ''));
+            return (
+                <li key='album'>
+                    <button
+                        style={{margin: '5px'}}
+                        onClick={async () => {
+                            return await this.viewAlbum(albumName);
+                        }}
+                    >
+                        {albumName}
+                    </button>
+                </li>
+            );
+        });
+    }
+}
 
 export {PhotoViewer};
